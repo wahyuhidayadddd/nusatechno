@@ -1,41 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Box,
-  Button,
-  Table,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr,
-  Input,
-  IconButton,
-  HStack,
-  VStack,
-  useToast,
-  Select,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  Image,
+  Box, Button, Table, Tbody, Td, Th, Thead, Tr, Input, IconButton, HStack, VStack, useToast, Select, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Image, FormLabel,
 } from '@chakra-ui/react';
-import { MdEdit, MdDelete, MdVisibility } from 'react-icons/md'; // Use MdVisibility for viewing documents
+import { MdEdit, MdDelete, MdVisibility } from 'react-icons/md';
 import axios from 'axios';
 
 const DriverDashboard = () => {
   const [drivers, setDrivers] = useState([]);
-  const [name, setName] = useState('');
-  const [vehicleNumber, setVehicleNumber] = useState('');
-  const [phone, setPhone] = useState('');
-  const [latitude, setLatitude] = useState('');
-  const [longitude, setLongitude] = useState('');
-  const [status, setStatus] = useState('active');
+  const [formData, setFormData] = useState({
+    name: '',
+    vehicleNumber: '',
+    phone: '',
+    status: 'active',
+  });
+  const [files, setFiles] = useState({ ktp: null, sim: null });
   const [editingId, setEditingId] = useState(null);
-  const [simFile, setSimFile] = useState(null);
-  const [vehicleDataFile, setVehicleDataFile] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const toast = useToast();
@@ -49,138 +28,66 @@ const DriverDashboard = () => {
       const response = await axios.get('http://localhost:5000/api/drivers');
       setDrivers(response.data);
     } catch (error) {
-      console.error('Error fetching drivers:', error);
-      toast({
-        title: 'Error fetching drivers',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Error fetching drivers', error.message, 'error');
     }
+  };
+
+  const showToast = (title, description, status) => {
+    toast({
+      title,
+      description,
+      status,
+      duration: 3000,
+      isClosable: true,
+    });
   };
 
   const handleFileChange = (e, type) => {
     const file = e.target.files[0];
-    if (type === 'sim') {
-      setSimFile(file);
-    } else if (type === 'vehicle_data') {
-      setVehicleDataFile(file);
-    }
+    setFiles((prev) => ({ ...prev, [type]: file }));
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const addOrUpdateDriver = async () => {
-    if (!name) {
-      toast({
-        title: 'Input Error',
-        description: 'Name is required.',
-        status: 'warning',
-        duration: 3000,
-        isClosable: true,
-      });
+    if (!formData.name) {
+      showToast('Input Error', 'Name is required.', 'warning');
       return;
     }
 
-    const formData = new FormData();
-    formData.append('name', name);
-    formData.append('vehicle_number', vehicleNumber);
-    formData.append('phone', phone);
-    formData.append('latitude', latitude);
-    formData.append('longitude', longitude);
-    formData.append('status', status);
-
-    if (simFile) {
-      formData.append('sim', simFile);
-    }
-
-    if (vehicleDataFile) {
-      formData.append('vehicle_data', vehicleDataFile);
-    }
-
-    // Log FormData before sending
-    const formDataObj = {};
-    for (const [key, value] of formData.entries()) {
-      formDataObj[key] = value instanceof File ? value.name : value;
-    }
-    console.log('Form Data before sending:', formDataObj); // Log FormData
+    const formDataToSend = new FormData();
+    Object.keys(formData).forEach((key) => formDataToSend.append(key, formData[key]));
+    if (files.ktp) formDataToSend.append('vehicle_data', files.ktp);
+    if (files.sim) formDataToSend.append('sim', files.sim);
 
     try {
       if (editingId) {
-        // Update existing driver
-        await axios.put(`http://localhost:5000/api/drivers/${editingId}`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+        await axios.put(`http://localhost:5000/api/drivers/${editingId}`, formDataToSend, {
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        toast({
-          title: 'Driver Updated',
-          description: `${name} has been updated successfully!`,
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
+        showToast('Driver Updated', `${formData.name} has been updated!`, 'success');
       } else {
-        // Add new driver
-        await axios.post('http://localhost:5000/api/drivers', formData);
-        toast({
-          title: 'Driver Added',
-          description: `${name} has been added successfully!`,
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
+        await axios.post('http://localhost:5000/api/drivers', formDataToSend);
+        showToast('Driver Added', `${formData.name} has been added!`, 'success');
       }
-      fetchDrivers(); 
+      fetchDrivers();
       clearForm();
     } catch (error) {
-      console.error('Error adding/updating driver:', error);
-      toast({
-        title: 'Error adding/updating driver',
-        description: error.response?.data?.error || error.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const deleteDriver = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/api/drivers/${id}`);
-      toast({
-        title: 'Driver Deleted',
-        description: 'Driver has been deleted successfully!',
-        status: 'success',
-        duration: 3000,
-        isClosable: true,
-      });
-      fetchDrivers(); // Refresh the list
-    } catch (error) {
-      console.error('Error deleting driver:', error);
-      toast({
-        title: 'Error deleting driver',
-        description: error.message,
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      });
+      showToast('Error', error.response?.data?.error || error.message, 'error');
     }
   };
 
   const clearForm = () => {
-    setName('');
-    setVehicleNumber('');
-    setPhone('');
-    setLatitude('');
-    setLongitude('');
-    setStatus('active');
+    setFormData({ name: '', vehicleNumber: '', phone: '', status: 'active' });
+    setFiles({ ktp: null, sim: null });
     setEditingId(null);
-    setSimFile(null);
-    setVehicleDataFile(null);
   };
 
-  const openFileModal = (file) => {
-    setSelectedFile(file);
+  const openFileModal = (fileUrl) => {
+    setSelectedFile(fileUrl);
     setIsOpen(true);
   };
 
@@ -189,121 +96,126 @@ const DriverDashboard = () => {
     setSelectedFile(null);
   };
 
-  const renderFilePreview = () => {
-    if (!selectedFile) return null;
+  const handleEdit = (driver) => {
+    setFormData({
+      name: driver.name,
+      vehicleNumber: driver.vehicle_number,
+      phone: driver.phone,
+      status: driver.status,
+    });
+    setEditingId(driver.id);
+  };
 
-    const fileType = selectedFile.type;
-    const isImage = fileType.startsWith('image/');
-    
-    // Only display image previews for images
-    if (isImage) {
-      return <Image src={URL.createObjectURL(selectedFile)} alt="Document" />;
-    } else if (fileType === 'application/pdf') {
-      return <iframe src={URL.createObjectURL(selectedFile)} style={{ width: '100%', height: '500px' }} title="PDF Document" />;
+  const handleDelete = async (id) => {
+    try {
+      await axios.delete(`http://localhost:5000/api/drivers/${id}`);
+      showToast('Driver Deleted', 'The driver has been deleted!', 'success');
+      fetchDrivers();
+    } catch (error) {
+      showToast('Error', error.response?.data?.error || error.message, 'error');
     }
-    
-    return <p>Unsupported file type</p>;
   };
 
   return (
-    <Box p={5}>
-      <h2>Dashboard Driver</h2>
-      <VStack spacing={4} mb={4} mt={10}>
-        <Input placeholder="Nama Driver" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input placeholder="Nomor Kendaraan" value={vehicleNumber} onChange={(e) => setVehicleNumber(e.target.value)} />
-        <Input placeholder="Nomor Telepon" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        <Input placeholder="Latitude" value={latitude} onChange={(e) => setLatitude(e.target.value)} />
-        <Input placeholder="Longitude" value={longitude} onChange={(e) => setLongitude(e.target.value)} />
-        
-        <Select placeholder="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+    <Box p={5} borderWidth={1} borderRadius="lg" boxShadow="lg">
+      <h2 style={{ textAlign: 'center', marginBottom: '20px' }}>Dashboard Driver</h2>
+      <VStack spacing={4} mb={4}>
+        <Input placeholder="Nama Driver" name="name" value={formData.name} onChange={handleInputChange} />
+        <Input placeholder="Nomor Kendaraan" name="vehicleNumber" value={formData.vehicleNumber} onChange={handleInputChange} />
+        <Input placeholder="Nomor Telepon" name="phone" value={formData.phone} onChange={handleInputChange} />
+        <Select placeholder="Status" name="status" value={formData.status} onChange={handleInputChange}>
+          <option value="active">Aktif</option>
+          <option value="inactive">Non-Aktif</option>
         </Select>
 
-        <Input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => handleFileChange(e, 'sim')} />
-        <Input type="file" accept="application/pdf,image/jpeg,image/png" onChange={(e) => handleFileChange(e, 'vehicle_data')} />
-        
-        <HStack>
-          <Button colorScheme="teal" onClick={addOrUpdateDriver}>
-            {editingId ? 'Update Driver' : 'Add Driver'}
-          </Button>
-          <Button variant="outline" onClick={clearForm}>Clear</Button>
-        </HStack>
+        {/* KTP File Input */}
+        <Box width="100%">
+          <FormLabel htmlFor="vehicleDataFile">Upload KTP (ID Card)</FormLabel>
+          <Input 
+            id="vehicleDataFile" 
+            type="file" 
+            onChange={(e) => handleFileChange(e, 'vehicle_data')} 
+            accept=".jpg,.jpeg,.png,.pdf"
+          />
+        </Box>
+
+        {/* SIM File Input */}
+        <Box width="100%">
+          <FormLabel htmlFor="simFile">Upload SIM (Driving License)</FormLabel>
+          <Input 
+            id="simFile" 
+            type="file" 
+            onChange={(e) => handleFileChange(e, 'sim')} 
+            accept=".jpg,.jpeg,.png,.pdf"
+          />
+        </Box>
+        <Button onClick={addOrUpdateDriver} colorScheme="blue" width="full">
+          {editingId ? 'Update Driver' : 'Tambah Driver'}
+        </Button>
       </VStack>
 
-      <Table variant="simple">
+      <Table variant="striped" colorScheme="teal" size="md" mt={5}>
         <Thead>
           <Tr>
-            <Th>ID</Th>
             <Th>Nama</Th>
             <Th>Nomor Kendaraan</Th>
             <Th>Nomor Telepon</Th>
-            <Th>Latitude</Th>
-            <Th>Longitude</Th>
-            <Th>KTP</Th> {/* New column for KTP */}
-            <Th>SIM</Th> {/* New column for SIM */}
+            <Th>Status</Th>
+            {/* <Th>KTP</Th> */}
+            <Th>SIM</Th>
             <Th>Aksi</Th>
           </Tr>
         </Thead>
         <Tbody>
           {drivers.map((driver) => (
             <Tr key={driver.id}>
-              <Td>{driver.id}</Td>
               <Td>{driver.name}</Td>
               <Td>{driver.vehicle_number}</Td>
               <Td>{driver.phone}</Td>
-              <Td>{driver.latitude}</Td>
-              <Td>{driver.longitude}</Td>
-              <Td>
+              <Td>{driver.status}</Td>
+              {/* <Td>
                 {driver.ktp_url && (
-                  <IconButton
-                    icon={<MdVisibility />}
-                    onClick={() => openFileModal(driver.ktp_url)} // Open modal for KTP
-                    aria-label="View KTP"
+                  <Image
+                    src={`http://localhost:5000/uploads/${driver.ktp_url}`}
+                    alt="KTP"
+                    boxSize="60px"
+                    objectFit="cover"
+                    onClick={() => openFileModal(`http://localhost:5000/uploads/${driver.ktp_url}`)}
+                    cursor="pointer"
                   />
                 )}
-              </Td>
+              </Td> */}
               <Td>
                 {driver.sim_url && (
-                  <IconButton
-                    icon={<MdVisibility />}
-                    onClick={() => openFileModal(driver.sim_url)} // Open modal for SIM
-                    aria-label="View SIM"
+                  <Image
+                    src={`http://localhost:5000/uploads/${driver.sim_url}`}
+                    alt="SIM"
+                    boxSize="60px"
+                    objectFit="cover"
+                    onClick={() => openFileModal(`http://localhost:5000/uploads/${driver.sim_url}`)}
+                    cursor="pointer"
                   />
                 )}
               </Td>
               <Td>
-                <IconButton
-                  icon={<MdEdit />}
-                  onClick={() => {
-                    setName(driver.name);
-                    setVehicleNumber(driver.vehicle_number);
-                    setPhone(driver.phone);
-                    setLatitude(driver.latitude);
-                    setLongitude(driver.longitude);
-                    setStatus(driver.status);
-                    setEditingId(driver.id);
-                  }}
-                  aria-label="Edit"
-                />
-                <IconButton
-                  icon={<MdDelete />}
-                  onClick={() => deleteDriver(driver.id)}
-                  aria-label="Delete"
-                />
+                <HStack spacing={2}>
+                  <IconButton icon={<MdEdit />} onClick={() => handleEdit(driver)} />
+                  <IconButton icon={<MdDelete />} onClick={() => handleDelete(driver.id)} />
+                </HStack>
               </Td>
             </Tr>
           ))}
         </Tbody>
       </Table>
 
+      {/* File Preview Modal */}
       <Modal isOpen={isOpen} onClose={closeFileModal}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>File Preview</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {renderFilePreview()}
+            <Image src={selectedFile} alt="File Preview" />
           </ModalBody>
         </ModalContent>
       </Modal>
