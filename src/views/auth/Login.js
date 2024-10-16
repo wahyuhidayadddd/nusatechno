@@ -23,9 +23,9 @@ const Login = ({ onLogin }) => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-  
+
     // Check if both fields are empty
-    if (!username && !password) {
+    if (!username || !password) {
       Swal.fire({
         icon: 'warning',
         title: 'Input Required',
@@ -34,7 +34,7 @@ const Login = ({ onLogin }) => {
       });
       return;
     }
-  
+
     try {
       const response = await fetch('http://localhost:5000/api/login', {
         method: 'POST',
@@ -43,20 +43,20 @@ const Login = ({ onLogin }) => {
         },
         body: JSON.stringify({ username, password }),
       });
-  
+
       if (response.ok) {
         const data = await response.json();
         console.log('Login successful:', data);
         
-        // Simpan data pengguna di localStorage
+        // Save user data in localStorage
         localStorage.setItem('user', JSON.stringify(data));
-  
-        // Panggil fungsi untuk memperbarui status login
+
+        // Call function to update login status
         onLogin(username);
       } else {
         const errorData = await response.json();
         console.error('Login failed:', errorData.error);
-  
+
         // Handle specific error messages
         if (errorData.error.includes('username')) {
           Swal.fire({
@@ -83,7 +83,7 @@ const Login = ({ onLogin }) => {
       }
     } catch (error) {
       console.error('An error occurred:', error);
-  
+
       // Display SweetAlert for general errors
       Swal.fire({
         icon: 'error',
@@ -93,16 +93,15 @@ const Login = ({ onLogin }) => {
       });
     }
   };
-  
-  // Cek status login saat komponen pertama kali dimuat
+
+  // Check login status when the component mounts
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
       const userData = JSON.parse(user);
-      onLogin(userData.username); // Set status login jika user ditemukan
+      onLogin(userData.username); // Set login status if user is found
     }
-  }, []);
-  
+  }, [onLogin]);
 
   return (
     <Flex

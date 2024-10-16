@@ -43,6 +43,14 @@ export default function HeaderLinks(props) {
     '14px 17px 40px 4px rgba(112, 144, 176, 0.06)',
   );
   const borderButton = useColorModeValue('secondaryGray.500', 'whiteAlpha.200');
+  const handleLogout = () => {
+    // Menghapus token dari localStorage atau sessionStorage
+    localStorage.removeItem('token'); // Atau sessionStorage.removeItem('token')
+  
+    // Mengarahkan pengguna kembali ke halaman login atau beranda
+    window.location.href = '/login'; // Redirect ke halaman login
+  };
+  
   return (
     <Flex
       w={{ sm: '100%', md: 'auto' }}
@@ -291,14 +299,16 @@ export default function HeaderLinks(props) {
               <Text fontSize="sm">Newsletter Settings</Text>
             </MenuItem>
             <MenuItem
-              _hover={{ bg: 'none' }}
-              _focus={{ bg: 'none' }}
-              color="red.400"
-              borderRadius="8px"
-              px="14px"
-            >
-              <Text fontSize="sm">Log out</Text>
-            </MenuItem>
+  _hover={{ bg: 'none' }}
+  _focus={{ bg: 'none' }}
+  color="red.400"
+  borderRadius="8px"
+  px="14px"
+  onClick={handleLogout}  // Tambahkan fungsi onClick untuk logout
+>
+  <Text fontSize="sm">Log out</Text>
+</MenuItem>
+
           </Flex>
         </MenuList>
       </Menu>
