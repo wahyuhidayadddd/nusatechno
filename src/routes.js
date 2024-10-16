@@ -4,15 +4,24 @@ import {
   MdMyLocation,     
   MdPhotoCamera,    
   MdWarning,
-  MdPeople, // Icon untuk driver
+  MdPeople,
+  MdDashboard,  // Ikon untuk dashboard
 } from 'react-icons/md';
 
 import GPSTrackingComponent from 'views/admin/gps';
 import CameraTrackingComponent from 'views/admin/camera';
 import DamageDetectionComponent from 'views/admin/damage';
-import DriverDashboard from 'views/admin/DriverDashboard'; // Import komponen dashboard driver
+import DriverDashboard from 'views/admin/DriverDashboard'; 
+import MainDashboard from 'views/admin/MainDashboard';  // Dashboard Utama
 
 const trackingRoutes = [
+  {
+    name: 'Dashboard Utama', 
+    layout: '/admin',
+    path: '/main-dashboard', 
+    icon: <Icon as={MdDashboard} width="20px" height="20px" color="inherit" />, 
+    component: <MainDashboard />,  // Komponen untuk dashboard utama
+  },
   {
     name: 'Pelacakan GPS',
     layout: '/admin',
@@ -37,9 +46,9 @@ const trackingRoutes = [
   {
     name: 'Driver',
     layout: '/admin',
-    path: '/driver-dashboard', // Path untuk dashboard driver
+    path: '/driver-dashboard', 
     icon: <Icon as={MdPeople} width="20px" height="20px" color="inherit" />,
-    component: <DriverDashboard />, // Komponen dashboard driver
+    component: <DriverDashboard />, 
   },
 ];
 

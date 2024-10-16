@@ -1,49 +1,81 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Heading, Text } from '@chakra-ui/react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-
-// Ganti dengan API Key Google Maps Anda
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { Box, Heading, Select } from '@chakra-ui/react';
+import L from 'leaflet';
 
 const GPSTrackingComponent = () => {
-  const [location, setLocation] = useState({ lat: -6.1751, lng: 106.8650 }); // Koordinat awal
-  const [vehicleInfo, setVehicleInfo] = useState({
-    id: 'ABC123',
-    speed: '60 km/h',
-    status: 'Sedang bergerak',
-    lastReported: '2024-10-06 10:00:00',
-  });
+  const [vehicleType, setVehicleType] = useState('car'); 
+  const [vehicles, setVehicles] = useState([]); 
+
+  const fetchVehicles = async (type) => {
+    // Ganti ini dengan API Anda jika tersedia
+    const mockVehicleData = [
+      { id: 1, position: [-6.1751, 106.8650], jenis_kendaraan: 'car' },
+      { id: 2, position: [-6.1745, 106.8641], jenis_kendaraan: 'truck' },
+      { id: 3, position: [-6.1760, 106.8630], jenis_kendaraan: 'motorcycle' },
+    ];
+    const filteredVehicles = mockVehicleData.filter(vehicle => vehicle.jenis_kendaraan === type);
+    setVehicles(filteredVehicles);
+  };
 
   useEffect(() => {
-    // Simulasi pengambilan data lokasi
-    const fetchLocationData = () => {
-      // Ganti dengan API untuk mengambil data GPS dari backend Anda
-      const newLocation = { lat: -6.1752, lng: 106.8651 }; // Simulasi lokasi baru
-      setLocation(newLocation);
-    };
+    fetchVehicles(vehicleType); 
+  }, [vehicleType]);
 
-    // Set interval untuk memperbarui lokasi setiap 5 detik
-    const interval = setInterval(fetchLocationData, 5000);
-    return () => clearInterval(interval); // Bersihkan interval saat komponen unmount
-  }, []);
+  const createVehicleIcon = (type) => {
+    let iconHtml;
+    switch (type) {
+      case 'car':
+        iconHtml = `<div style="color: blue; font-size: 24px;">🚗</div>`;
+        break;
+      case 'motorcycle':
+        iconHtml = `<div style="color: green; font-size: 24px;">🏍️</div>`;
+        break;
+      case 'truck':
+        iconHtml = `<div style="color: red; font-size: 24px;">🚚</div>`;
+        break;
+      default:
+        iconHtml = `<div style="font-size: 24px;">❓</div>`;
+    }
+    return L.divIcon({
+      className: 'custom-icon',
+      html: iconHtml,
+      iconSize: [30, 30],
+      popupAnchor: [0, -15],
+    });
+  };
 
   return (
     <Box padding="20px">
       <Heading as="h2" size="lg">Pelacakan GPS</Heading>
-      <Text mt={4}>ID Kendaraan: {vehicleInfo.id}</Text>
-      <Text>Kecepatan: {vehicleInfo.speed}</Text>
-      <Text>Status: {vehicleInfo.status}</Text>
-      <Text>Waktu Terakhir Dilaporkan: {vehicleInfo.lastReported}</Text>
+      <Select 
+        placeholder="Pilih Jenis Kendaraan" 
+        value={vehicleType} 
+        onChange={(e) => setVehicleType(e.target.value)}
+      >
+        <option value="car">Mobil</option>
+        <option value="motorcycle">Motor</option>
+        <option value="truck">Truk</option>
+      </Select>
 
-      <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
-        <GoogleMap
-          mapContainerStyle={{ height: '400px', width: '100%' }}
-          center={location}
-          zoom={15}
-        >
-          <Marker position={location} />
-        </GoogleMap>
-      </LoadScript>
+      <MapContainer center={[-6.1751, 106.8650]} zoom={15} style={{ height: '400px', width: '100%' }}>
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        {vehicles.map(vehicle => (
+          <Marker 
+            key={vehicle.id} 
+            position={vehicle.position} 
+            icon={createVehicleIcon(vehicle.jenis_kendaraan)}
+          >
+            <Popup>
+              ID Kendaraan: {vehicle.id}<br />
+              Jenis: {vehicle.jenis_kendaraan}
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
     </Box>
   );
 };
