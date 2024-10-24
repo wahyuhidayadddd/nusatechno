@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Flex,
   Heading,
@@ -11,25 +11,41 @@ import {
   useColorModeValue,
   Text,
   Box,
+  Select,
 } from '@chakra-ui/react';
-import Swal from 'sweetalert2'; // Import SweetAlert
+import Swal from 'sweetalert2'; 
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import backgroundImage from 'assets/gps-light.webp'; 
 
 const Login = ({ onLogin }) => {
   const { toggleColorMode } = useColorMode();
-  const formBackground = useColorModeValue('rgba(255, 255, 255, 0.9)', 'rgba(50, 50, 50, 0.9)');
-  const backgroundImage = "url('https://example.com/your-background-image.jpg')";
+  const formBackground = useColorModeValue('rgba(255, 255, 255, 0.8)', 'rgba(30, 30, 30, 0.9)'); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [errorMessages, setErrorMessages] = useState({ username: '', password: '' });
+  const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+
+  const handleAdminClick = () => {
+    navigate('/admin');
+  };
+
+  const handleRegisterClick = () => {
+    navigate('/register');
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    // Check if both fields are empty
+    // Clear previous error messages
+    setErrorMessages({ username: '', password: '' });
+
     if (!username || !password) {
       Swal.fire({
         icon: 'warning',
-        title: 'Input Required',
-        text: 'Please fill in both username and password.',
+        title: t('inputRequired'),
+        text: t('pleaseLogin'),
         confirmButtonText: 'Okay'
       });
       return;
@@ -47,71 +63,61 @@ const Login = ({ onLogin }) => {
       if (response.ok) {
         const data = await response.json();
         console.log('Login successful:', data);
-        
-        // Save user data in localStorage
         localStorage.setItem('user', JSON.stringify(data));
-
-        // Call function to update login status
         onLogin(username);
+        navigate('/admin/main-dashboard'); 
       } else {
         const errorData = await response.json();
         console.error('Login failed:', errorData.error);
 
-        // Handle specific error messages
+        // Display error messages for specific cases
         if (errorData.error.includes('username')) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Invalid Username',
-            text: 'The username you entered is incorrect.',
-            confirmButtonText: 'Try Again'
-          });
+          setErrorMessages((prev) => ({ ...prev, username: t('invalidUsername') }));
         } else if (errorData.error.includes('password')) {
-          Swal.fire({
-            icon: 'error',
-            title: 'Invalid Password',
-            text: 'The password you entered is incorrect.',
-            confirmButtonText: 'Try Again'
-          });
+          setErrorMessages((prev) => ({ ...prev, password: t('invalidPassword') }));
         } else {
           Swal.fire({
             icon: 'error',
-            title: 'Login Failed',
-            text: 'Invalid username or password.',
+            title: t('loginFailed'),
+            text: t('pleaseLogin'),
             confirmButtonText: 'Try Again'
           });
         }
       }
     } catch (error) {
       console.error('An error occurred:', error);
-
-      // Display SweetAlert for general errors
       Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: 'An unexpected error occurred. Please try again later.',
+        text: t('errorOccurred'),
         confirmButtonText: 'Okay'
       });
     }
   };
 
-  // Check login status when the component mounts
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
       const userData = JSON.parse(user);
-      onLogin(userData.username); // Set login status if user is found
+      onLogin(userData.username); 
     }
   }, [onLogin]);
+
+  const handleLanguageChange = (e) => {
+    i18n.changeLanguage(e.target.value);
+  };
 
   return (
     <Flex
       h="100vh"
       alignItems="center"
       justifyContent="center"
-      backgroundImage={backgroundImage}
+      backgroundImage={`url(${backgroundImage})`} 
       backgroundSize="cover"
       backgroundPosition="center"
       position="relative"
+      transition="all 0.3s ease" 
+      _hover={{ filter: 'brightness(0.7)' }} 
     >
       <Box
         bg={formBackground}
@@ -123,43 +129,71 @@ const Login = ({ onLogin }) => {
         zIndex={1}
       >
         <Heading as="h2" size="lg" mb={6} textAlign="center">
-          Welcome Back!
+          {t('welcome')}
         </Heading>
-        <Text textAlign="center" mb={8} color="gray.600">
-          Please log in to your account to continue
-        </Text>
+        {/* <Flex justifyContent="space-between" mt={4} px={4}>
+          <Button
+            colorScheme="blue"
+            width="48%"
+            mb={2}
+            borderRadius="md"
+            _hover={{ bg: "blue.600" }}
+            _active={{ bg: "blue.700" }}
+            onClick={handleAdminClick}
+          >
+            Admin
+          </Button>
+          <Button
+            colorScheme="yellow"
+            width="48%"
+            mb={2}
+            borderRadius="md"
+            _hover={{ bg: "yellow.400" }}
+            _active={{ bg: "yellow.500" }}
+            onClick={handleRegisterClick}
+          >
+            Register
+          </Button>
+        </Flex> */}
+
         <form onSubmit={handleLogin}>
           <FormControl mb={4}>
-            <FormLabel htmlFor="username">Username</FormLabel>
+            <FormLabel htmlFor="username">{t('username')}</FormLabel>
             <Input
               id="username"
-              placeholder="yourusername"
+              placeholder={t('username')}
               type="text"
               variant="filled"
               required
               value={username}
               onChange={(e) => setUsername(e.target.value)}
             />
+            {errorMessages.username && (
+              <Text color="red.500" fontSize="sm">{errorMessages.username}</Text>
+            )}
           </FormControl>
           <FormControl mb={6}>
-            <FormLabel htmlFor="password">Password</FormLabel>
+            <FormLabel htmlFor="password">{t('password')}</FormLabel>
             <Input
               id="password"
-              placeholder="**********"
+              placeholder={t('password')}
               type="password"
               variant="filled"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
+            {errorMessages.password && (
+              <Text color="red.500" fontSize="sm">{errorMessages.password}</Text>
+            )}
           </FormControl>
           <Button colorScheme="teal" mb={6} type="submit" width="full">
-            Log In
+            {t('login')}
           </Button>
         </form>
         <FormControl display="flex" alignItems="center" justifyContent="center">
           <FormLabel htmlFor="dark_mode" mb="0">
-            Enable Dark Mode?
+            {t('enableDarkMode')}
           </FormLabel>
           <Switch
             id="dark_mode"
@@ -168,6 +202,22 @@ const Login = ({ onLogin }) => {
             onChange={toggleColorMode}
           />
         </FormControl>
+
+        <FormControl mb={4}>
+          <FormLabel htmlFor="language">Language</FormLabel>
+          <Select id="language" onChange={handleLanguageChange} placeholder="Select language">
+            <option value="en">English</option>
+            <option value="id">Bahasa Indonesia</option>
+            <option value="ja">日本語 (Japanese)</option>
+            <option value="zh">中文 (Chinese)</option>
+          </Select>
+        </FormControl>
+
+        {/* <Text textAlign="center" mb={4} fontSize="sm" color="teal.500">
+          <Button variant="link" color="teal.500">
+            {t('forgotUsernameOrPassword')}
+          </Button>
+        </Text> */}
       </Box>
 
       <Box
@@ -177,11 +227,11 @@ const Login = ({ onLogin }) => {
         right={0}
         textAlign="center"
         color="white"
-        opacity={0.5}
+        opacity={100}
         fontSize="sm"
         zIndex={0}
       >
-        Powered by NusaTekno
+        {t('poweredBy')}
       </Box>
     </Flex>
   );

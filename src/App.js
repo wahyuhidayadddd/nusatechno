@@ -12,33 +12,35 @@ export default function Main() {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
   const [isAuthenticated, setIsAuthenticated] = useState(
     localStorage.getItem('isAuthenticated') === 'true'
-  ); // Ambil status dari localStorage
+  );
+
+  
   const navigate = useNavigate(); 
 
   const handleLogin = (username) => {
     setIsAuthenticated(true);
-    localStorage.setItem('isAuthenticated', 'true'); // Set ke localStorage
+    localStorage.setItem('isAuthenticated', 'true'); 
     console.log('User logged in:', username);
-    navigate('/admin/main-dashboard'); 
+
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    localStorage.removeItem('isAuthenticated'); // Hapus dari localStorage
+    localStorage.removeItem('isAuthenticated');
     console.log('User logged out');
-    navigate('/login'); // Arahkan ke halaman login
+    navigate('/login');
   };
 
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate('/login'); // Arahkan ke login jika belum login
+      navigate('/login'); 
     }
   }, [isAuthenticated, navigate]);
 
   return (
     <ChakraProvider theme={currentTheme}>
       <Routes>
-        <Route path="auth/*" element={<AuthLayout />} />
+        <Route path="/login" element={<AuthLayout />} />
         <Route
           path="/admin/*"
           element={
@@ -49,12 +51,13 @@ export default function Main() {
             )
           }
         />
+
         <Route
           path="/rtl/*"
           element={<RTLLayout theme={currentTheme} setTheme={setCurrentTheme} />}
         />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/login" element={<Login onLogin={handleLogin} />} />
+
+        <Route path="/" element={<Login onLogin={handleLogin} />} />
       </Routes>
     </ChakraProvider>
   );
